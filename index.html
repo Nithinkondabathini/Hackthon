@@ -1,0 +1,326 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Odisha Preventive Health Assistant</title>
+  <meta name="description" content="Preventive healthcare, vaccination tracker, AI analysis, and health services for Odisha"/>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    :root {
+      --bg:#f9fafb; --text:#1e293b; --muted:#64748b;
+      --brand:#14b8a6; --brand-2:#0f766e;
+      --card:#ffffff; --border:#e2e8f0;
+    }
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{font-family:system-ui,Segoe UI,Roboto,Arial;background:var(--bg);color:var(--text);line-height:1.6}
+    header{position:sticky;top:0;background:#fff;border-bottom:3px solid var(--brand);z-index:50;box-shadow:0 2px 6px rgba(0,0,0,.05)}
+    .container{max-width:1200px;margin:0 auto;padding:0 18px}
+    nav{display:flex;align-items:center;justify-content:space-between;padding:14px 0;flex-wrap:wrap}
+    nav .links a{margin-right:16px;text-decoration:none;color:var(--text);font-weight:600;transition:.2s}
+    nav .links a:hover{color:var(--brand)}
+    .lang-select{padding:6px 10px;border:1px solid var(--border);border-radius:6px}
+    section{padding:40px 0;border-top:1px solid var(--border)}
+    h1{font-size:2.2rem;margin-bottom:10px;color:var(--brand-2)}
+    h2{font-size:1.6rem;margin-bottom:18px;color:var(--brand);display:flex;align-items:center;gap:8px}
+    p{margin:8px 0;color:var(--muted)}
+    .grid{display:grid;gap:20px}
+    .grid.cols-2{grid-template-columns:1fr 1fr}
+    .card{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:20px;box-shadow:0 2px 8px rgba(0,0,0,.05);transition:.2s}
+    .card:hover{box-shadow:0 4px 12px rgba(0,0,0,.1);transform:translateY(-2px)}
+    .btn{border:none;background:var(--brand);color:#fff;padding:10px 16px;border-radius:8px;cursor:pointer;font-weight:600;transition:.2s}
+    .btn:hover{background:var(--brand-2)}
+    .btn.secondary{background:#fff;color:var(--brand);border:2px solid var(--brand)}
+    footer{padding:30px 0;color:var(--muted);font-size:.9rem;text-align:center;margin-top:20px;border-top:1px solid var(--border)}
+
+    /* Quick Tips */
+    .tips-wrap{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px}
+    .tip{padding:14px;border-radius:12px;text-align:center;font-weight:600;cursor:pointer;color:#fff;transition:.2s}
+    .tip:hover{transform:scale(1.05)}
+    .tip.dengue{background:#ef4444}.tip.diarrhea{background:#facc15;color:#1f2937}
+    .tip.covid{background:#3b82f6}.tip.maternal{background:#f97316}
+    .tip.vaccines{background:#10b981}.tip.malaria{background:#9333ea}
+    .tip.hygiene{background:#0ea5e9}
+    #quickTip{margin-top:16px;display:none}
+
+    /* Timeline */
+    .timeline{list-style:none;padding-left:0;position:relative}
+    .timeline li{padding:10px 0 10px 28px;border-left:3px solid var(--brand);margin-left:12px;position:relative}
+    .timeline li::before{content:"";position:absolute;left:-7px;top:14px;width:14px;height:14px;border-radius:50%;background:var(--brand)}
+
+    /* Chat */
+    .chat-wrap{height:480px;display:flex;flex-direction:column;border:1px solid var(--border);border-radius:16px;overflow:hidden;background:#fff}
+    .chat-header{display:flex;align-items:center;justify-content:space-between;background:#ecfdf5;padding:12px 16px;border-bottom:1px solid var(--border)}
+    .chat-body{flex:1;overflow:auto;padding:14px;display:flex;flex-direction:column;gap:12px;background:#f9fafb}
+    .msg{max-width:75%;padding:12px 14px;border-radius:12px;font-size:.95rem}
+    .msg.bot{align-self:flex-start;background:#e0f2fe;color:#075985}
+    .msg.user{align-self:flex-end;background:#d1fae5;color:#065f46}
+    .chat-input{display:flex;gap:8px;padding:12px;border-top:1px solid var(--border);background:#fff}
+    .chat-input input{flex:1;padding:10px;border:1px solid var(--border);border-radius:8px}
+    #map{height:300px;border-radius:12px}
+    canvas{max-width:100%}
+  </style>
+</head>
+<body>
+<header>
+  <div class="container">
+    <nav>
+      <div><strong>Odisha Health Assistant</strong></div>
+      <div class="links">
+        <a href="#home">Home</a>
+        <a href="#prevention">Prevention</a>
+        <a href="#vaccines">Polio</a>
+        <a href="#services">Services</a>
+        <a href="#appointments">Appointments</a>
+        <a href="#symptoms">Symptoms</a>
+        <a href="#analysis">AI Analysis</a>
+        <a href="#chat">Chat</a>
+        <a href="#mapSection">Nearby</a>
+        <a href="#dashboard">Dashboard</a>
+      </div>
+      <select id="lang" class="lang-select">
+        <option value="en">English</option>
+        <option value="hi">हिन्दी</option>
+        <option value="or">ଓଡିଆ</option>
+      </select>
+    </nav>
+  </div>
+</header>
+
+<main id="home" class="container">
+  <!-- Hero -->
+  <section class="hero">
+    <h1>Preventive Health Assistant for Odisha</h1>
+    <p>Guidance on symptoms, polio schedule, AI-powered analysis, and nearby health services.</p>
+    <div style="margin-top:12px">
+      <a class="btn" href="#chat">Open Chat</a>
+      <a class="btn secondary" href="#vaccines">View Polio Info</a>
+    </div>
+  </section>
+
+  <!-- Alerts -->
+  <section>
+    <div class="card" id="alertBox" style="background:#fff3cd;border-left:6px solid #f59e0b">
+      <b>⚠️ Health Alert:</b> Dengue cases rising in Cuttack. Remove standing water and use repellents.
+    </div>
+  </section>
+
+  <!-- Quick Tips -->
+  <section>
+    <h2>⚡ Quick tips</h2>
+    <div class="tips-wrap">
+      <div class="tip dengue" data-quick="dengue">🦟 Dengue</div>
+      <div class="tip diarrhea" data-quick="diarrhea">💧 Diarrhea</div>
+      <div class="tip covid" data-quick="covid">😷 COVID</div>
+      <div class="tip maternal" data-quick="maternal">🤰 Maternal Care</div>
+      <div class="tip vaccines" data-quick="vaccines">💉 Vaccines</div>
+      <div class="tip malaria" data-quick="malaria">🦟 Malaria</div>
+      <div class="tip hygiene" data-quick="hygiene">🧼 Hygiene</div>
+    </div>
+    <div id="quickTip" class="card"></div>
+  </section>
+
+  <!-- Polio Schedule -->
+  <section id="vaccines">
+    <h2>💉 Polio Schedule</h2>
+    <div class="grid cols-2">
+      <div class="card">
+        <b>OPV Doses</b>
+        <ul class="timeline">
+          <li>0-1 day: OPV-0 <input type="checkbox"/></li>
+          <li>6 weeks: OPV-1 <input type="checkbox"/></li>
+          <li>10 weeks: OPV-2 <input type="checkbox"/></li>
+          <li>14 weeks: OPV-3 <input type="checkbox"/></li>
+        </ul>
+      </div>
+      <div class="card">
+        <b>Reminders</b>
+        <p>Set reminders in your phone or SMS for vaccination days.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Appointment Booking -->
+  <section id="appointments">
+    <h2>📅 Appointment Booking</h2>
+    <div class="card">
+      <form id="apptForm">
+        <label>Name: <input type="text" id="apptName" required></label><br><br>
+        <label>Date: <input type="date" id="apptDate" required></label><br><br>
+        <label>Service: 
+          <select id="apptService">
+            <option>Vaccination</option>
+            <option>Checkup</option>
+            <option>Consultation</option>
+          </select>
+        </label><br><br>
+        <button class="btn" type="submit">Book Appointment</button>
+      </form>
+      <p id="apptMsg" style="margin-top:10px;color:green;font-weight:bold;"></p>
+    </div>
+  </section>
+
+  <!-- Symptom Checker -->
+  <section id="symptoms">
+    <h2>🩺 Symptom Checker</h2>
+    <div class="card">
+      <form id="symptomForm">
+        <label><input type="checkbox" value="fever"> Fever</label><br>
+        <label><input type="checkbox" value="cough"> Cough</label><br>
+        <label><input type="checkbox" value="vomit"> Vomiting</label><br>
+        <label><input type="checkbox" value="rash"> Skin Rash</label><br><br>
+        <button class="btn" type="submit">Check</button>
+      </form>
+      <p id="symptomResult" style="margin-top:10px;font-weight:bold;"></p>
+    </div>
+  </section>
+
+  <!-- AI Medical Image Analysis -->
+  <section id="analysis">
+    <h2>🖼️ Medical Image Analysis (Demo)</h2>
+    <div class="card" style="text-align:center">
+      <p>Upload an image for AI-powered analysis</p>
+      <input type="file" id="imageUpload" accept="image/*" class="btn"/>
+      <br><br>
+      <img id="preview" hidden style="max-width:220px; border-radius:10px; margin-top:10px;"/>
+      <div id="result" style="margin-top:12px; font-weight:bold; color:#1e40af;"></div>
+    </div>
+  </section>
+
+  <!-- Chat -->
+  <section id="chat">
+    <h2>💬 Chat with the assistant</h2>
+    <div class="chat-wrap">
+      <div class="chat-header">
+        <div><strong>Assistant</strong><div style="font-size:.85rem;color:var(--muted)">Educational guidance only</div></div>
+        <div style="display:flex;gap:8px;">
+          <button class="btn secondary" id="voiceBtn">🔊 Voice Off</button>
+          <button class="btn secondary" id="clearBtn">Clear</button>
+        </div>
+      </div>
+      <div id="chatBody" class="chat-body"></div>
+      <form class="chat-input" id="chatForm" autocomplete="off">
+        <input id="userInput" placeholder="Type a message…"/>
+        <button class="btn" type="submit">Send</button>
+      </form>
+    </div>
+  </section>
+
+  <!-- Nearby Health Centers -->
+  <section id="mapSection">
+    <h2>📍 Nearby Health Centers</h2>
+    <div id="map"></div>
+  </section>
+
+  <!-- Dashboard -->
+  <section id="dashboard">
+    <h2>📊 Vaccination Coverage Dashboard</h2>
+    <div class="card">
+      <canvas id="chart"></canvas>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <b>Government of Odisha</b> • Electronics & IT Department • MedTech / HealthTech <br/>
+  We minimize personal data. Messages are for improving service quality.
+</footer>
+
+<!-- External Libs -->
+<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.15.0/dist/tf.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/mobilenet@2.1.0"></script>
+
+<script>
+// Quick Tips
+const QUICK_TIPS={
+  dengue:"🦟 Dengue: Remove standing water, wear long sleeves, use nets.",
+  diarrhea:"💧 Diarrhea: Drink safe water, wash hands, give ORS to kids.",
+  covid:"😷 COVID: Wear mask, wash hands, keep distance, vaccinate.",
+  maternal:"🤰 Maternal care: Regular checkups, iron tablets, nutritious food.",
+  vaccines:"💉 Vaccines: Complete schedule on time to prevent diseases.",
+  malaria:"🦟 Malaria: Use mosquito nets and repellents.",
+  hygiene:"🧼 Hygiene: Wash hands, cover food, keep surroundings clean."
+};
+document.querySelectorAll("[data-quick]").forEach(el=>{
+  el.addEventListener("click",()=>{
+    const tipBox=document.getElementById("quickTip");
+    tipBox.style.display="block";
+    tipBox.innerText=QUICK_TIPS[el.dataset.quick];
+  });
+});
+
+// Appointment Booking
+document.getElementById("apptForm").addEventListener("submit",e=>{
+  e.preventDefault();
+  const name=document.getElementById("apptName").value;
+  const date=document.getElementById("apptDate").value;
+  const service=document.getElementById("apptService").value;
+  localStorage.setItem("appointment",JSON.stringify({name,date,service}));
+  document.getElementById("apptMsg").innerText="✅ Appointment booked for "+name+" on "+date+" ("+service+")";
+});
+
+// Symptom Checker
+document.getElementById("symptomForm").addEventListener("submit",e=>{
+  e.preventDefault();
+  const checked=[...document.querySelectorAll("#symptomForm input:checked")].map(i=>i.value);
+  let result="No major risk. Stay healthy!";
+  if(checked.includes("fever")&&checked.includes("cough")) result="⚠️ Possible flu/COVID. Please consult doctor.";
+  if(checked.includes("vomit")) result="⚠️ Possible food/water infection. Take ORS.";
+  if(checked.includes("rash")) result="⚠️ Skin rash may indicate allergy/dengue. Monitor closely.";
+  document.getElementById("symptomResult").innerText=result;
+});
+
+// Chatbot
+const chatBody=document.getElementById("chatBody");
+const chatForm=document.getElementById("chatForm");
+const userInput=document.getElementById("userInput");
+const clearBtn=document.getElementById("clearBtn");
+let voiceEnabled=false;
+
+function addMsg(role,text){const d=document.createElement("div");d.className="msg "+role;d.textContent=text;chatBody.appendChild(d);chatBody.scrollTop=chatBody.scrollHeight;}
+function botReply(text){addMsg("bot",text);if(voiceEnabled)speak(text);}
+chatForm.addEventListener("submit",e=>{
+  e.preventDefault();
+  const text=userInput.value.trim();
+  if(!text)return;
+  addMsg("user",text);
+  userInput.value="";
+  if(text.toLowerCase().includes("polio"))botReply("Polio drops (OPV) are given at birth, 6, 10, and 14 weeks.");
+  else if(text.toLowerCase().includes("fever"))botReply("Drink fluids, rest. If high fever, see a doctor.");
+  else botReply("I can guide on prevention, polio, vaccines, and services.");
+});
+clearBtn.addEventListener("click",()=>chatBody.innerHTML="");
+
+// Voice
+const voiceBtn=document.getElementById("voiceBtn");
+voiceBtn.addEventListener("click",()=>{voiceEnabled=!voiceEnabled;voiceBtn.textContent=voiceEnabled?"🔊 Voice On":"🔊 Voice Off";});
+function speak(text){const synth=window.speechSynthesis;const utter=new SpeechSynthesisUtterance(text);utter.lang="en-IN";synth.speak(utter);}
+
+// AI Image Upload
+let model;
+mobilenet.load().then(m=>{model=m;console.log("✅ Model loaded");});
+document.getElementById("imageUpload").addEventListener("change",async e=>{
+  const file=e.target.files[0];if(!file)return;
+  const img=document.getElementById("preview");
+  img.src=URL.createObjectURL(file);img.hidden=false;
+  img.onload=async()=>{
+    const preds=await model.classify(img);
+    document.getElementById("result").innerText=
+      preds.slice(0,3).map(p=>`${p.className} (${(p.probability*100).toFixed(1)}%)`).join("\n");
+  };
+});
+
+// Map
+const map=L.map("map").setView([20.2961,85.8245],7);
+L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",{maxZoom:19}).addTo(map);
+L.marker([20.5,85.8]).addTo(map).bindPopup("PHC Badamba");
+L.marker([20.4,85.7]).addTo(map).bindPopup("CHC Banki");
+
+// Dashboard
+const ctx=document.getElementById("chart");
+new Chart(ctx,{type:"bar",data:{labels:["Polio","Measles","DPT","HepB"],datasets:[{label:"Coverage %",data:[90,80,75,70]}]},options:{scales:{y:{beginAtZero:true,max:100}}}});
+</script>
+</body>
+</html>
